@@ -5,6 +5,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 
+from app_data import get_health_payload, get_person_payload
+
 LOG_DIR = Path("logs")
 APP_LOG_FILE = LOG_DIR / "app.log"
 ERROR_LOG_FILE = LOG_DIR / "error.log"
@@ -24,6 +26,10 @@ def setup_logging() -> None:
         "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
 
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+
     app_handler = logging.FileHandler(APP_LOG_FILE)
     app_handler.setLevel(logging.INFO)
     app_handler.setFormatter(formatter)
@@ -32,14 +38,15 @@ def setup_logging() -> None:
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(formatter)
 
+    root_logger.addHandler(console_handler)
     root_logger.addHandler(app_handler)
     root_logger.addHandler(error_handler)
 
-    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access", "watchfiles", "watchfiles.main"):
         uvicorn_logger = logging.getLogger(logger_name)
         uvicorn_logger.handlers.clear()
         uvicorn_logger.propagate = True
-        uvicorn_logger.setLevel(logging.INFO)
+        uvicorn_logger.setLevel(logging.WARNING if logger_name.startswith("watchfiles") else logging.INFO)
 
     setup_logging._configured = True
 
@@ -76,12 +83,12 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return get_health_payload()
 
 
 @app.get("/person")
 def get_person():
-    return {"name": "John Doe", "age": 30}
+    return get_person_payload()
 
 
 @app.on_event("startup")
