@@ -21,6 +21,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY --from=builder /install /usr/local
 COPY main.py .
+COPY app_data.py .
 
 EXPOSE 8000
 
